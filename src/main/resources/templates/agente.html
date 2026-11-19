@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="pt-BR" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Agente IA - Realtec | Estoque &amp; Pedidos</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+</head>
+<body class="bg-light">
+
+<nav class="navbar navbar-expand-lg navbar-dark bg-dark mb-4">
+    <div class="container">
+        <a class="navbar-brand fw-bold" th:href="@{/produtos}">Realtec | Estoque &amp; Pedidos</a>
+        <div class="navbar-nav">
+            <a class="nav-link" th:href="@{/produtos}">Produtos</a>
+            <a class="nav-link" th:href="@{/pedidos}">Pedidos</a>
+            <a class="nav-link active" th:href="@{/agente}">Agente IA</a>
+        </div>
+    </div>
+</nav>
+
+<div class="container pb-5">
+
+    <div class="card shadow-sm mb-4">
+        <div class="card-header bg-white fw-semibold">
+            Comando para o Agente IA
+        </div>
+        <div class="card-body">
+            <form id="form-agente" th:action="@{/agente/executar}" method="post">
+                <div class="mb-3">
+                    <label for="prompt" class="form-label fw-semibold">O que você deseja que o agente faça?</label>
+                    <textarea id="prompt"
+                              name="prompt"
+                              class="form-control"
+                              rows="3"
+                              required
+                              placeholder="Ex: Cadastre o produto PR-006 com descrição Água Mineral 500ml, preço 3.50 e estoque 80"></textarea>
+                </div>
+
+                <div class="d-flex align-items-center gap-3">
+                    <button id="btn-executar" type="submit" class="btn btn-primary">
+                        Executar Comando
+                    </button>
+
+                    <div id="status-executando" class="d-none align-items-center text-primary fw-semibold">
+                        <span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
+                        <span>Executando agente... aguarde a conclusão.</span>
+                    </div>
+                </div>
+            </form>
+
+            <div th:if="${respostaAgente != null}" class="alert alert-info mt-3 mb-0">
+                <strong>Resposta do Agente:</strong>
+                <p class="mb-0 mt-1" style="white-space: pre-wrap;" th:text="${respostaAgente}"></p>
+            </div>
+        </div>
+    </div>
+
+    <div class="card shadow-sm">
+        <div class="card-header bg-white d-flex justify-content-between align-items-center">
+            <span class="fw-semibold">Histórico de Auditoria e Execuções do Agente</span>
+            <a th:href="@{/agente}" class="btn btn-sm btn-outline-secondary">Atualizar Histórico</a>
+        </div>
+        <div class="table-responsive">
+            <table class="table table-hover table-striped align-middle mb-0">
+                <thead class="table-light">
+                <tr>
+                    <th>Data/Hora</th>
+                    <th>Status</th>
+                    <th>Comando Recebido</th>
+                    <th>Ações Realizadas</th>
+                    <th>Resultado Observado</th>
+                    <th>Conclusão</th>
+                </tr>
+                </thead>
+                <tbody>
+                <tr th:if="${#lists.isEmpty(logs)}">
+                    <td colspan="6" class="text-center text-muted py-4">
+                        Nenhuma execução registrada até o momento.
+                    </td>
+                </tr>
+                <tr th:each="log : ${logs}">
+                    <td class="text-nowrap" th:text="${#temporals.format(log.dataHora, 'dd/MM/yyyy HH:mm:ss')}"></td>
+                    <td>
+                        <span th:if="${log.sucesso}" class="badge bg-success">Sucesso</span>
+                        <span th:unless="${log.sucesso}" class="badge bg-danger">Falha</span>
+                    </td>
+                    <td th:text="${log.comandoRecebido}"></td>
+                    <td>
+                        <pre class="mb-0 small" style="white-space: pre-wrap;" th:text="${log.acoesRealizadas}"></pre>
+                    </td>
+                    <td>
+                        <div class="small" style="white-space: pre-wrap;" th:text="${log.resultadoObservado}"></div>
+                    </td>
+                    <td class="small" th:text="${log.conclusao}"></td>
+                </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+</div>
+
+<script>
+    const formAgente = document.getElementById('form-agente');
+    const btnExecutar = document.getElementById('btn-executar');
+    const statusExecutando = document.getElementById('status-executando');
+
+    if (formAgente) {
+        formAgente.addEventListener('submit', async function (event) {
+            event.preventDefault();
+
+            btnExecutar.disabled = true;
+            btnExecutar.textContent = 'Executando...';
+            statusExecutando.classList.remove('d-none');
+            statusExecutando.classList.add('d-flex');
+
+            try {
+                const formData = new FormData(formAgente);
+                const response = await fetch(formAgente.getAttribute('action'), {
+                    method: 'POST',
+                    body: new URLSearchParams(formData),
+                    headers: {
+                        'Content-Type': 'application/x-www-form-urlencoded'
+                    }
+                });
+
+                const html = await response.text();
+                document.open();
+                document.write(html);
+                document.close();
+            } catch (error) {
+                window.location.href = '/agente';
+            }
+        });
+    }
+</script>
+
+</body>
+</html>
